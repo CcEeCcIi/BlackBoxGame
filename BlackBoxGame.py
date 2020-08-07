@@ -1,5 +1,5 @@
 # Author: Tingting Fang
-# Date: 7/27/2020
+# Date: 8/7/2020
 # Description: A class named BlackBoxGame for playing an abstract board game called Black Box.
 
 class BlackBoxGame:
@@ -7,63 +7,95 @@ class BlackBoxGame:
 
     def __init__(self, atom_list):
         """To create a BlackBoxGame object with board, score and memory."""
-        self._current_score = 25
+        self._score = 25
         self._board = Board(atom_list)
-        self._score = Score(self._current_score)
-        self._memory = Memory()
-        self._direction = None
-        self._sign = None
+        self._atom_list = atom_list
+        self._previous_points = set()
+        self._previous_guess = set()
+        self._exit = None
+        self._guess = None
+        self._left = 0
 
     def shoot_ray(self, ray_row, ray_col):
         """Return false if row and column designate a corner square or a non-border square.
         Otherwise return a tuple of the row and column of the exit border square. Return None
         if no exit border square."""
-        # shoot from corner square
+
         ray = (ray_row, ray_col)
+
+        # shoot from corner square
         if ray == (0, 0) or ray == (0, 9) or ray == (9, 0) or ray == (9, 9):
-            return print(False) #False
+            print(False)
+            return False
 
         # shoot from non-border square
         elif 1 <= ray_row <= 8 and 1 <= ray_col <= 8:
-            return print(False) #False
+            print(False)
+            return False
 
         # other scenarios
         else:
-            self._board.shoot_ray(ray_row, ray_col)
+            # if ray not in previous points
+            if ray not in self._previous_points:
+                self.set_score(1)
+            # update previous entry/exit points
+            self.add_previous_points(ray)
 
+            self._exit = self._board.shoot_ray(ray_row, ray_col)
 
-        # a hit
-        #for el in range(0, len(self._atoms)):
-            #if ray_row == self._atoms[el][0] or ray_col == self._atoms[el][1]:
-                #print("hit")
-                #return None
-        # a miss
-        #if ray_row == 0 or ray_row == 9:
-            #for el in range(0, len(self._atoms)):
-                #if ray_row != self._atoms[el][0] and ray_col != self._atoms[el][1]:
-                    #exit = (ray_row, ray_col)
-                #print("miss", exit)
-                #return exit
-
-
-        # adjust score accordingly
-
+            # if exit exists
+            if self._exit != None:
+                # if exit not in previous points
+                if self._exit not in self._previous_points:
+                    self.set_score(1)
+                # add to previous entry/exit points
+                self.add_previous_points(self._exit)
+            return self._exit
 
     def guess_atom(self, row, col):
         """Return True if there is an atom at that location. Otherwise return False."""
-        pass
-        # adjust score accordingly
+        # add to guess set
+        self._guess = (row, col)
+        # check if guess right
+        for el in self._atom_list:
+            if (row, col) == el:
+                self.add_previous_guess(self._guess)
+                print("True")
+                return True
+        # update score if guess wrong
+        if self._guess not in self._previous_guess:
+            self.set_score(5)
+        self.add_previous_guess(self._guess)
+        print("False")
+        return False
 
-    #def set_score(self):
-        #"""Return the score after the action."""
+    def set_score(self, penalty):
+        """Return the score after the action."""
+        self._score -= penalty
 
     def get_score(self):
-        """Return current score."""
-        pass
+        """Return the current score."""
+        print(self._score)
+        return self._score
 
     def atoms_left(self):
         """Returns the number of atoms that haven't been guessed yet."""
-        pass
+        for el in range(0, len(self._atom_list)):
+            row = self._atom_list[el][0]
+            col = self._atom_list[el][1]
+            if self._board._board[row][col] == "o":
+                self._left += 1
+        print("atoms left: ", self._left)
+        return self._left
+
+    def add_previous_points(self, exit):
+        """Return array of tuples of previous entry/exit point."""
+        self._previous_points.add(exit)
+
+    def add_previous_guess(self, guess):
+        """Return array of atoms of previous guess."""
+        self._previous_guess.add(guess)
+
 
 class Board:
     """To represent a game Board with rows and columns."""
@@ -87,6 +119,13 @@ class Board:
         self._sign = None
         self._direciton = None
         self._atom_result = None
+        self._atom = []
+        self._has_atom = False
+        self._next_row = None
+        self._next_col = None
+        self._check_rows = None
+        self._check_cols = None
+
         # for debug
         for row in range(0, 10):
             print(self._board[row])
@@ -112,6 +151,31 @@ class Board:
 
         self._atom_result = self.scan(ray_row, ray_col, self._direction, self._sign)
 
+        # check if is "miss"
+        if self.miss() != None:
+            print("miss", self.miss())
+            return self.miss()
+
+        # a "hit"
+        if self._atom_result[0] != None:
+            # set the atom to "x" to indicate being hit
+            self._board[self._atom_result[0][0]][self._atom_result[0][1]] = "x"
+            # for debug
+            for row in range(0, 10):
+                print(self._board[row])
+            print("hit")
+            return None
+
+        # check if is "reflection"
+        if self.reflection(ray_row, ray_col) != None:
+            return self.reflection(ray_row, ray_col)
+        else:
+            # a detour
+            self.action(self._direction, self._sign)
+            return self.shoot_ray(self._current[0], self._current[1])
+
+    def miss(self):
+        """To take care of the scenario "miss" and return the exit square, otherwise return None."""
         # a miss (vertical and horizontal)
         if self._atom_result == None and self._direction is True and self._sign is True:
             exit = (9, self._current[1])
@@ -129,45 +193,33 @@ class Board:
             exit = (self._current[0], 0)
             print("miss", exit)
             return exit
-
-        # a "hit"
-        if self._atom_result[0] != None:
-            print("hit")
+        else:
             return None
 
-        # double deflection
-        #elif self._atom_result[1] != None and self._atom_result[2] != None:
-            #print("double deflection", (ray_row, ray_col))
-            #return self.shoot_ray(ray_row, ray_col)
-
-        else:
-            if self._atom_result[1] != None and self._atom_result[2] == None:
-                # a "reflection", vertical and horizontal
-                if (ray_row == 0 and self._atom_result[1][0] == 1) or \
-                        (ray_row == 9 and self._atom_result[1][0] == 8) or \
-                        (ray_col == 0 and self._atom_result[1][1] == 1) or \
-                        (ray_col == 9 and self._atom_result[1][1] == 8):
-                    print("reflection", (ray_row, ray_col))
-                    return (ray_row, ray_col)
-                else:
-                    # a detour
-                    self.action(self._direction, self._sign)
-                    return self.shoot_ray(self._current[0], self._current[1])
-            elif self._atom_result[1] == None and self._atom_result[2] != None:
-                if (ray_row == 0 and self._atom_result[2][0] == 1) or \
-                        (ray_row == 9 and self._atom_result[2][0] == 8) or \
-                        (ray_col == 0 and self._atom_result[2][1] == 1) or \
-                        (ray_col == 9 and self._atom_result[2][1] == 8):
-                    print("reflection", (ray_row, ray_col))
-                    return (ray_row, ray_col)
-                else:
-                    # a detour
-                    self.action(self._direction, self._sign)
-                    return self.shoot_ray(self._current[0], self._current[1])
+    def reflection(self, ray_row, ray_col):
+        """To take care of scenario "reflection" and return the exit square, otherwise return None."""
+        if self._atom_result[1] != None and self._atom_result[2] == None:
+            # a "reflection", vertical and horizontal
+            if (ray_row == 0 and self._atom_result[1][0] == 1) or \
+                    (ray_row == 9 and self._atom_result[1][0] == 8) or \
+                    (ray_col == 0 and self._atom_result[1][1] == 1) or \
+                    (ray_col == 9 and self._atom_result[1][1] == 8):
+                print("reflection", (ray_row, ray_col))
+                return (ray_row, ray_col)
             else:
-                # a detour
-                self.action(self._direction, self._sign)
-                return self.shoot_ray(self._current[0], self._current[1])
+                return None
+        elif self._atom_result[1] == None and self._atom_result[2] != None:
+            # a "reflection", vertical and horizontal
+            if (ray_row == 0 and self._atom_result[2][0] == 1) or \
+                    (ray_row == 9 and self._atom_result[2][0] == 8) or \
+                    (ray_col == 0 and self._atom_result[2][1] == 1) or \
+                    (ray_col == 9 and self._atom_result[2][1] == 8):
+                print("reflection", (ray_row, ray_col))
+                return (ray_row, ray_col)
+            else:
+                return None
+        else:
+            return None
 
     def action(self, direction, sign):
         # take in where the ray start, change direction and sign
@@ -181,149 +233,127 @@ class Board:
                 self._sign = not sign
         self._direction = not direction  # change direction
 
+    def vertical_scan(self, next_row, col, sign, check_rows):
+        """Return an array of tuple of atoms in three squares order (center, left, right)towards the ray direction.\
+        if no atoms along the way, return None."""
+        self._has_atom = False
 
+        for _ in range(0, check_rows):
+            # check the center square
+            self.check_center(next_row, col)
+            # check the left square
+            if 0 < col - 1 < 9:
+                if self._board[next_row][col - 1] == "o":
+                    self._atom.append((next_row, col - 1))
+                    self._has_atom = True
+                else:
+                    self._atom.append(None)
+            else:
+                self._atom.append(None)
+            # check the right square
+            if 0 < col + 1 < 9:
+                if self._board[next_row][col + 1] == "o":
+                    self._atom.append((next_row, col + 1))
+                    self._has_atom = True
+                else:
+                    self._atom.append(None)
+            else:
+                self._atom.append(None)
+
+            if self._has_atom == True:
+                return self._atom
+            else:
+                self._atom = []
+            # update current ray and next row
+            next_row = self.update_row(next_row, col, sign)
+        return None
+
+    def check_center(self, row, col):
+        """Check if there is an atom in the center."""
+        if self._board[row][col] == "o":
+            self._atom.append((row, col))
+            self._has_atom = True
+        else:
+            self._atom.append(None)
+
+    def update_row(self, row, col, sign):
+        """Update current square and next row"""
+        # update current ray
+        self._current = (row, col)
+        if sign is True:  # means "+"
+            row += 1
+        else:
+            row -= 1
+        return row
+
+    def horizontal_scan(self, row, next_col, sign, check_cols):
+        """Return an array of tuple of atoms in three squares order (center, left, right)towards the ray direction.\
+        if no atoms along the way, return None."""
+        self._has_atom = False
+
+        for _ in range(0, check_cols):
+            # check the center square
+            self.check_center(row, next_col)
+            # check the upper square
+            if 0 < row - 1 < 9:
+                if self._board[row - 1][next_col] == "o":
+                    self._atom.append((row - 1, next_col))
+                    self._has_atom = True
+                else:
+                    self._atom.append(None)
+            else:
+                self._atom.append(None)
+            # check the lower square
+            if 0 < row + 1 < 9:
+                if self._board[row + 1][next_col] == "o":
+                    self._atom.append((row + 1, next_col))
+                    self._has_atom = True
+                else:
+                    self._atom.append(None)
+            else:
+                self._atom.append(None)
+
+            if self._has_atom == True:
+                return self._atom
+            else:
+                self._atom = []
+            # update current ray and next column
+            next_col = self.update_col(row, next_col, sign)
+        return None
+
+    def update_col(self, row, col, sign):
+        """Update current square and next col"""
+        # update current ray
+        self._current = (row, col)
+        if sign is True:  # means "+"
+            col += 1
+        else:
+            col -= 1
+        return col
 
     def scan(self, row, col, direction, sign):
         """Return an array of tuple of atoms in three squares order (center, left, right)towards the ray direction.\
         if no atoms along the way, return None"""
-        self._atom = []
-        has_atom = False
+
+        # initialize next_row and next_col.
         if sign is True:
-            next_row = row + 1
-            next_col = col + 1
-            check_rows = 8 - row
-            check_cols = 8 - col
+            self._next_row = row + 1
+            self._next_col = col + 1
+            self._check_rows = 8 - row
+            self._check_cols = 8 - col
         else:
-            next_row = row - 1
-            next_col = col - 1
-            check_rows = row - 1
-            check_cols = col - 1
+            self._next_row = row - 1
+            self._next_col = col - 1
+            self._check_rows = row - 1
+            self._check_cols = col - 1
+
         # case 1: vertical check atom
-        if direction is True: #"vertical":
-            for _ in range(0, check_rows):
-                # check the center square
-                if self._board[next_row][col] == "o":
-                    self._atom.append((next_row, col))
-                    has_atom = True
-                else:
-                    self._atom.append(None)
-
-                # check the left square
-                if 0 < col - 1 < 9:
-                    if self._board[next_row][col - 1] == "o":
-                        self._atom.append((next_row, col - 1))
-                        has_atom = True
-                    else:
-                        self._atom.append(None)
-                else:
-                    self._atom.append(None)
-
-                # check the right square
-                if 0 < col + 1 < 9:
-                    if self._board[next_row][col + 1] == "o":
-                        self._atom.append((next_row, col + 1))
-                        has_atom = True
-                    else:
-                        self._atom.append(None)
-                else:
-                    self._atom.append(None)
-
-                if has_atom == True:
-                    return self._atom
-                else:
-                    self._atom = []
-
-                # update current ray
-                self._current = (next_row, col)
-                if sign is True: # means "+"
-                    next_row += 1
-                else:
-                    next_row -= 1
-            return None
+        if direction is True:  # "vertical"
+            return self.vertical_scan(self._next_row, col, sign, self._check_rows)
 
         # case 2: horizontal check atom
-        if direction is False: # "horizontal"
-            for _ in range(0, check_cols):
-
-                # check the center square
-                if self._board[row][next_col] == "o":
-                    self._atom.append((row, next_col))
-                    has_atom = True
-                else:
-                    self._atom.append(None)
-
-                # check the upper square
-                if 0 < row - 1 < 9:
-                    if self._board[row - 1][next_col] == "o":
-                        self._atom.append((row - 1, next_col))
-                        has_atom = True
-                    else:
-                        self._atom.append(None)
-                else:
-                    self._atom.append(None)
-
-                # check the lower square
-                if 0 < row + 1 < 9:
-                    if self._board[row + 1][next_col] == "o":
-                        self._atom.append((row + 1, next_col))
-                        has_atom = True
-                    else:
-                        self._atom.append(None)
-                else:
-                    self._atom.append(None)
-
-                if has_atom == True:
-                    return self._atom
-                else:
-                    self._atom = []
-                # update current ray
-                self._current = (row, next_col)
-                if sign is True: #means "+"
-                    next_col += 1
-                else:
-                    next_col -= 1
-            return None
-
-    def get_direction(self):
-        """Return direction"""
-
-
-
-    def set_score(self):
-        """Return the score after the action."""
-        pass
-
-
-class Score:
-    """To represent the Score."""
-    def __init__(self, score):
-        """To create a score object."""
-        self._score = 25
-
-    def set_score(self):
-        """Return the score after the action."""
-        pass
-
-
-    def get_score(self):
-        """Return the current score."""
-        pass
-
-class Memory:
-    """To represent the Memory of game with previous points and previous guess."""
-
-    def __init__(self):
-        """To create a Memory object with previous points and previous guess."""
-        self._previous_points = []
-        self._previous_guess = []
-
-    def add_previous_points(self):
-        """Return array of tuples of previous entry/exit point."""
-        pass
-
-    def add_previous_guess(self):
-        """Return array of atoms of previous guess."""
-        pass
+        if direction is False:  # "horizontal"
+            return self.horizontal_scan(row, self._next_col, sign, self._check_cols)
 
 # detour 1
 atom_list_1 = [(3,2),(3,7),(6,4),(8,7)]
@@ -337,6 +367,7 @@ atom_list_4 = [(3,3),(2,6),(7,6)]
 atom_list_5 = [(6,4),(6,6)]
 # deflection:
 atom_list_6 = [(3,2),(3,7),(6,4),(8,7)]
+
 #board = Board(atom_list)
 game = BlackBoxGame(atom_list_6)
 # test for detour 1:
@@ -356,8 +387,18 @@ game = BlackBoxGame(atom_list_6)
 # test for double deflection 5:
 #game.shoot_ray(0, 5)
 
-# test for deflection:
-#game.shoot_ray(5, 9)
+# test for deflection 6:
+game.shoot_ray(5, 9)
+
+# test for miss 6:
+game.shoot_ray(1, 0)
+
+# test for reflection 6:
+game.shoot_ray(9, 6)
+game.shoot_ray(9, 8)
+game.shoot_ray(3, 9)
+game.shoot_ray(3, 9)
+game.atoms_left()
 
 #board.action(1, 9)
 #board.action(0, 6)
@@ -391,3 +432,9 @@ game = BlackBoxGame(atom_list_6)
 
 #game.shoot_ray(0, 5)
 #game.shoot_ray(3, 9)
+
+# guess atom
+#game.guess_atom(8, 7)
+
+# check score
+game.get_score()
