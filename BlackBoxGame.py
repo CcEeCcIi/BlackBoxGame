@@ -31,12 +31,12 @@ class BlackBoxGame:
         # shoot from corner square
         if ray == (0, 0) or ray == (0, self._board_size - 1) or \
                 ray == (self._board_size - 1, 0) or ray == (self._board_size - 1, self._board_size - 1):
-            print(False)
+            #print(False)
             return False
 
         # shoot from non-border square
         elif 1 <= ray_row <= self._high and 1 <= ray_col <= self._high:
-            print(False)
+            #print(False)
             return False
 
         # other scenarios
@@ -67,17 +67,17 @@ class BlackBoxGame:
             if (row, col) == el:
                 self.add_previous_guess(self._guess)
                 self._board.change_atom_state(row, col)
-                print("True")
+                #print("True")
                 # for debug
                 for row in range(0, self._board_size):
-                    print(self._board._board[row])
-                print("hit")
+                    #print(self._board._board[row])
+                #print("hit")
                 return True
         # update score if guess wrong
         if self._guess not in self._previous_guess:
             self.set_score(self._guess_penalty)
         self.add_previous_guess(self._guess)
-        print("False")
+        #print("False")
         return False
 
     def set_score(self, penalty):
@@ -86,7 +86,7 @@ class BlackBoxGame:
 
     def get_score(self):
         """Return the current score."""
-        print(self._score)
+        #print(self._score)
         return self._score
 
     def atoms_left(self):
@@ -97,7 +97,7 @@ class BlackBoxGame:
             col = self._atom_list[el][1]
             if self._board._board[row][col] == "o":
                 self._left += 1
-        print("atoms left: ", self._left)
+        #print("atoms left: ", self._left)
         return self._left
 
     def add_previous_points(self, point):
@@ -110,11 +110,11 @@ class BlackBoxGame:
 
     # debug
     def get_previous_points(self):
-        print(self._previous_points)
+        #print(self._previous_points)
         return self._previous_points
 
     def get_previous_guess(self):
-        print(self._previous_guess)
+        #print(self._previous_guess)
         return self._previous_guess
 
 class Board:
@@ -151,8 +151,8 @@ class Board:
         self._guess = None
 
         # for debug
-        for row in range(0, self._board_size):
-            print(self._board[row])
+        #for row in range(0, self._board_size):
+            #print(self._board[row])
 
     def shoot_ray(self, ray_row, ray_col):
         """Return a tuple of the row and column of the exit border square. Return None\
@@ -177,7 +177,7 @@ class Board:
 
         # check if is "miss"
         if self.miss() != None:
-            print("miss", self.miss())
+            #print("miss", self.miss())
             return self.miss()
 
         # a "hit"
@@ -185,9 +185,9 @@ class Board:
             # set the atom to "x" to indicate being hit Do we need to mark the atom get hit??
             #self._board[self._atom_result[0][0]][self._atom_result[0][1]] = "x"
             # for debug
-            for row in range(0, self._board_size):
-                print(self._board[row])
-            print("hit")
+            #for row in range(0, self._board_size):
+                #print(self._board[row])
+            #print("hit")
             return None
 
         # check if is "reflection"
@@ -203,19 +203,19 @@ class Board:
         # a miss (vertical and horizontal)
         if self._atom_result == None and self._direction is True and self._sign is True:
             exit = (self._board_size - 1, self._current[1])
-            print("miss", exit)
+            #print("miss", exit)
             return exit
         elif self._atom_result == None and self._direction is True and self._sign is False:
             exit = (0, self._current[1])
-            print("miss", exit)
+            #print("miss", exit)
             return exit
         elif self._atom_result == None and self._direction is False and self._sign is True:
             exit = (self._current[0], self._board_size - 1)
-            print("miss", exit)
+            #print("miss", exit)
             return exit
         elif self._atom_result == None and self._direction is False and self._sign is False:
             exit = (self._current[0], 0)
-            print("miss", exit)
+            #print("miss", exit)
             return exit
         else:
             return None
@@ -228,7 +228,7 @@ class Board:
                     (ray_row == self._board_size - 1 and self._atom_result[1][0] == self._high) or \
                     (ray_col == 0 and self._atom_result[1][1] == 1) or \
                     (ray_col == self._board_size - 1 and self._atom_result[1][1] == self._high):
-                print("reflection", (ray_row, ray_col))
+                #print("reflection", (ray_row, ray_col))
                 return (ray_row, ray_col)
             else:
                 return None
@@ -238,7 +238,7 @@ class Board:
                     (ray_row == self._board_size - 1 and self._atom_result[2][0] == self._high) or \
                     (ray_col == 0 and self._atom_result[2][1] == 1) or \
                     (ray_col == self._board_size - 1 and self._atom_result[2][1] == self._high):
-                print("reflection", (ray_row, ray_col))
+                #print("reflection", (ray_row, ray_col))
                 return (ray_row, ray_col)
             else:
                 return None
@@ -386,20 +386,20 @@ class Board:
         self._board[row][col] = "x"
 
 # detour 1
-atom_list_1 = [(3,2),(3,7),(6,4),(8,7)]
+#atom_list_1 = [(3,2),(3,7),(6,4),(8,7)]
 # detour 2: median
-atom_list_2 = [(2,6),(7,6),(7,8)]
+#atom_list_2 = [(2,6),(7,6),(7,8)]
 # detour 3: easy
-atom_list_3 = [(4,6)]
+#atom_list_3 = [(4,6)]
 # detour 4:
-atom_list_4 = [(3,3),(2,6),(7,6)]
+#atom_list_4 = [(3,3),(2,6),(7,6)]
 # double deflection:
-atom_list_5 = [(6,4),(6,6)]
+#atom_list_5 = [(6,4),(6,6)]
 # deflection:
-atom_list_6 = [(3,2),(3,7),(6,4),(8,7),(1, 8), (5, 6)]
+#atom_list_6 = [(3,2),(3,7),(6,4),(8,7),(1, 8), (5, 6)]
 
 #board = Board(atom_list)
-game = BlackBoxGame(atom_list_4)
+#game = BlackBoxGame(atom_list_4)
 # test for detour 1:
 #game.shoot_ray(0, 3)
 #game.shoot_ray(4, 9)
