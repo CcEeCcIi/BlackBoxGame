@@ -69,7 +69,7 @@ class BlackBoxGame:
                 self._board.change_atom_state(row, col)
                 #print("True")
                 # for debug
-                for row in range(0, self._board_size):
+                #for row in range(0, self._board_size):
                     #print(self._board._board[row])
                 #print("hit")
                 return True
